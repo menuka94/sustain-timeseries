@@ -2,6 +2,8 @@ import time
 
 import pandas as pd
 from pymongo import MongoClient
+import json
+import requests
 from prophet import Prophet
 from pyspark.sql import SparkSession
 from pyspark.sql import SQLContext
@@ -75,12 +77,13 @@ def pandas_to_spark(df_pandas):
 # df = pandas_to_spark(df_pd)
 
 url = 'https://bitbucket.org/menuka94/sustain-covid-county-data/raw/357e0f6b964d5c6ece880846c4d1caad1f88a65c/covid_county.json'
-from pyspark import SparkFiles
-spark.sparkContext.addFile(url)
-# df = spark.read.format('json').load('')
-df = spark.read.json(SparkFiles.get('covid_county.json'))
+# from pyspark import SparkFiles
+# spark.sparkContext.addFile(url)
+# # df = spark.read.format('json').load('')
+# df = spark.read.json(SparkFiles.get('covid_county.json'))
 
-df.cache()
+r = requests.get(url)
+df = sqlContext.createDataFrame([json.loads(line) for line in r.iter_lines()])
 
 df = df.select('GISJOIN', 'cases', 'deaths', 'date', 'formatted_date')
 
