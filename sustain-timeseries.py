@@ -1,9 +1,6 @@
 import time
 
 import pandas as pd
-from pymongo import MongoClient
-import json
-import requests
 from prophet import Prophet
 from pyspark.sql import SparkSession
 from pyspark.sql import SQLContext
@@ -29,61 +26,7 @@ sqlContext = SQLContext(spark.sparkContext)
 
 print(f'Spark Version: {spark.sparkContext.version}')
 
-
-# -----------------------------------------------------------------
-
-# Auxiliar functions
-# Pandas Types -> Sparks Types
-def equivalent_type(f):
-    if f == 'datetime64[ns]':
-        return DateType()
-    elif f == 'int64':
-        return LongType()
-    elif f == 'int32':
-        return IntegerType()
-    elif f == 'float64':
-        return FloatType()
-    else:
-        return StringType()
-
-
-def define_structure(string, format_type):
-    try:
-        typo = equivalent_type(format_type)
-    except:
-        typo = StringType()
-    return StructField(string, typo)
-
-
-# Given pandas dataframe, it will return a spark's dataframe
-def pandas_to_spark(df_pandas):
-    columns = list(df_pandas.columns)
-    types = list(df_pandas.dtypes)
-    struct_list = []
-    for column, typo in zip(columns, types):
-        struct_list.append(define_structure(column, typo))
-    p_schema = StructType(struct_list)
-    return sqlContext.createDataFrame(df_pandas, p_schema)
-
-
-# -----------------------------------------------------------------
-
-
-# db = MongoClient('lattice-100', 27018)
-# collection = 'covid_county_formatted'
-# cursor = db.sustaindb[collection].find()
-# df_pd = pd.DataFrame(list(cursor))
-#
-# df = pandas_to_spark(df_pd)
-
-url = 'https://bitbucket.org/menuka94/sustain-covid-county-data/raw/357e0f6b964d5c6ece880846c4d1caad1f88a65c/covid_county.json'
-# from pyspark import SparkFiles
-# spark.sparkContext.addFile(url)
-# # df = spark.read.format('json').load('')
-# df = spark.read.json(SparkFiles.get('covid_county.json'))
-
-r = requests.get(url)
-df = sqlContext.createDataFrame([json.loads(line) for line in r.iter_lines()])
+df = spark.read.format("mongo").option("uri", "mongodb://lattice-100:27018/sustaindb.covid_county_formatted").load()
 
 df = df.select('GISJOIN', 'cases', 'deaths', 'date', 'formatted_date')
 
