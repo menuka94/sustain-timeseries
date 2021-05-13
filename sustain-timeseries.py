@@ -6,9 +6,9 @@ from prophet.plot import plot_plotly, plot_components_plotly
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.sql.types import *
 
-from pyspark.sql import SparkSession 
+from pyspark.sql import SparkSession
 
-spark = SparkSession.builder.master("local").getOrCreate() 
+spark = SparkSession.builder.master("local").getOrCreate()
 print(f'Spark Version: {spark.sparkContext.version}')
 
 df = spark.read.format('json').load('./covid_county.json')
@@ -25,6 +25,7 @@ result_schema = StructType([
 ])
 print('log: result_schema created')
 
+
 @pandas_udf(result_schema, PandasUDFType.GROUPED_MAP)
 def temp(df0):
     # instantiate the model, configure the parameters
@@ -37,9 +38,10 @@ def temp(df0):
 
 
 df_cases = df.select('GISJOIN', 'date', 'cases').withColumnRenamed('date', 'ds').withColumnRenamed('cases', 'y')
-print('Showing df_cases')
+print('log: Showing df_cases')
 df_cases.show()
 
 results = (df_cases.groupBy('GISJOIN').apply(temp))
 
+print('log: Showing results');
 results.show()
