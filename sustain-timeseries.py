@@ -20,7 +20,7 @@ SPARK_MASTER = os.environ["SPARK_MASTER"]
 DB_NAME = os.environ["DB_NAME"]
 DB_HOST = os.environ["DB_HOST"]
 DB_PORT = os.environ["DB_PORT"]
-SPARK_THREAD_COUNT = os.environ["SPARK_THREAD_COUNT"]
+# SPARK_THREAD_COUNT = os.environ["SPARK_THREAD_COUNT"]
 SPARK_EXECUTOR_CORES = os.environ["SPARK_EXECUTOR_CORES"]
 SPARK_EXECUTOR_MEMORY = os.environ["SPARK_EXECUTOR_MEMORY"]
 SPARK_INITIAL_EXECUTORS = os.environ["SPARK_INITIAL_EXECUTORS"]
@@ -35,6 +35,7 @@ spark = SparkSession \
     .builder \
     .master(SPARK_MASTER) \
     .appName("COVID-19 Time-series - PySpark") \
+    .config("spark.jars", jars) \
     .config("spark.driver.extraJavaOptions", "-Dio.netty.tryReflectionSetAccessible=true") \
     .config("spark.executor.extraJavaOptions", "-Dio.netty.tryReflectionSetAccessible=true") \
     .config("park.executor.cores", SPARK_EXECUTOR_CORES) \
