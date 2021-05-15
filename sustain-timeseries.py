@@ -71,7 +71,8 @@ result_schema = StructType([
     StructField("ds", DateType(), True),
     StructField("yhat", DoubleType(), True),
     StructField("yhat_lower", DoubleType(), True),
-    StructField("yhat_upper", DoubleType(), True)
+    StructField("yhat_upper", DoubleType(), True),
+    StructField("gis_join", StringType(), True)
 ])
 
 profiler.write_to_file('result_schema created')
@@ -84,11 +85,13 @@ def predict(df0):
     m.fit(df0)
     df0_future = m.make_future_dataframe(periods=365)
     df0_forecast = m.predict(df0_future)
+    df0_forecast['gis_join'] = df0['gis_join']
 
-    return df0_forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+    return df0_forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper', 'gis_join']]
 
 
 df_cases = df.select(GISJOIN, 'date', 'cases').withColumnRenamed('date', 'ds').withColumnRenamed('cases', 'y')
+df_cases = df_cases.withColumn("gis_join", df_cases[GISJOIN])
 
 profiler.write_to_file('Showing df_cases')
 df_cases.show()
@@ -103,7 +106,7 @@ results.show()
 time1 = time.monotonic()
 profiler.write_to_file(f'time1: {time1}')
 
-results.count()
+print(results.take(3))
 
 time2 = time.monotonic()
 profiler.write_to_file(f'time2: {time2}')
