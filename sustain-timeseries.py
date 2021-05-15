@@ -7,6 +7,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql import SQLContext
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 from pyspark.sql.types import *
+from pyspark import SparkContext
+import profiler
 
 jars = "" \
        "./jars/mongo-spark-connector_2.12-3.0.1.jar," \
@@ -49,10 +51,16 @@ spark = SparkSession \
     .config("spark.dynamicAllocation.executorIdleTimeout", SPARK_IDLE_TIMEOUT) \
     .getOrCreate()
 
-print(f'Spark Version: {spark.sparkContext.version}')
+profiler.write_to_file(f'Spark Version: {spark.sparkContext.version}')
+
+
+sc = spark.sparkContext
+temp = sc._jsc.sc()
 
 mongo_connection_uri = f'mongodb://{DB_HOST}:{DB_PORT}/{DB_NAME}.covid_county_formatted'
-print(f'mongo_connection_uri: {mongo_connection_uri}')
+
+profiler.write_to_file(f'mongo_connection_uri: {mongo_connection_uri}')
+
 df = spark.read.format("mongo").option("uri", mongo_connection_uri).load()
 
 df = df.select(GISJOIN, 'cases', 'deaths', 'date', 'formatted_date')
@@ -65,7 +73,8 @@ result_schema = StructType([
     StructField("yhat_lower", DoubleType(), True),
     StructField("yhat_upper", DoubleType(), True)
 ])
-print('log: result_schema created')
+
+profiler.write_to_file('result_schema created')
 
 
 @pandas_udf(result_schema, PandasUDFType.GROUPED_MAP)
@@ -80,20 +89,23 @@ def predict(df0):
 
 
 df_cases = df.select(GISJOIN, 'date', 'cases').withColumnRenamed('date', 'ds').withColumnRenamed('cases', 'y')
-print('Showing df_cases')
+
+profiler.write_to_file('Showing df_cases')
 df_cases.show()
+
+profiler.write_to_file(f'df_cases.groupBy(GISJOIN).count(): {df_cases.groupBy(GISJOIN).count()}')
 
 results = (df_cases.groupBy(GISJOIN).apply(predict))
 
-print('log: Showing results')
+profiler.write_to_file('Showing Results')
 results.show()
 
 time1 = time.monotonic()
-print(f'time1: {time1}')
+profiler.write_to_file(f'time1: {time1}')
 
 results.count()
 
 time2 = time.monotonic()
-print(f'time2: {time2}')
+profiler.write_to_file(f'time2: {time2}')
 
-print(f'Time Taken: {time2 - time1}')
+profiler.write_to_file(f'Time Taken: {time2 - time1}')
