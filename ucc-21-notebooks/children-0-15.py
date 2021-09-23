@@ -11,6 +11,10 @@ import itertools
 import dask
 from dask.distributed import Client
 
+
+DASK_URL = "lattice-150:8786"
+SINGLE_MODEL = True
+
 df_parent = pd.read_csv('covid_parents_trained.csv')
 print(f'df_parent.shape: {df_parent.shape}')
 
@@ -106,11 +110,13 @@ for gis_join, sample_percent in child_sample_perc_map.items():
     children_dfs_map[gis_join] = get_df_by_gis_join(gis_join, sample_percent)
 
 # pickle.dump(child_sample_perc_map, open('pickles/child_sample_perc_map.pkl', 'wb'))
+pickle.dump(children_dfs_map, open('pickles/children_dfs_map.pkl', 'wb'))
+# children_dfs_map = pickle.load(open('pickles/children_dfs_map.pkl', 'rb'))
 
 print(len(children_list))
 print(len(children_dfs_map.keys()))
 
-client = Client('lattice-150:8786')
+client = Client(DASK_URL)
 
 time1 = time.monotonic()
 
@@ -126,33 +132,35 @@ for parent, children in parent_child_map.items():
                 child_df = children_dfs_map[child]
                 lazy_result = dask.delayed(predict_transfer_task)(child_df, gis_join, parent_trained_)
                 lazy_results.append(lazy_result)
+                if SINGLE_MODEL:
+                    break
     except Exception as e:
         print(f'Error on {gis_join}')
         print(f"{type(e).__name__} at line {e.__traceback__.tb_lineno} of {__file__}: {e}")
     if counter % 100 == 0:
         print(counter, end=', ')
     counter += 1
-#     break
 
 futures = dask.persist(*lazy_results)  # trigger computation in the background
 results = dask.compute(*futures)
-print('Priting first 5 results')
+print('Printing first 5 results')
 print(results[:5])
 
 time2 = time.monotonic()
 print(f'Time taken (dataset=COVID-19, childModels 0-15%: {time2 - time1} s')
 
 # Write to CSV
-print('Writing results to csv')
+if not SINGLE_MODEL:
+    print('Writing results to csv')
 
-gis_joins = []
-times = []
+    gis_joins = []
+    times = []
 
-for r, t in results:
-    gis_joins.append(r)
-    times.append(t)
+    for r, t in results:
+        gis_joins.append(r)
+        times.append(t)
 
-times_0_15_df = pd.DataFrame(zip(gis_joins, times), columns=['GISJOIN', 'time'])
-# times_0_15_df.to_csv('covid-19-child_training_tl_times_0_15.csv', index=False)
-print(times_0_15_df.head())
+    times_0_15_df = pd.DataFrame(zip(gis_joins, times), columns=['GISJOIN', 'time'])
+    # times_0_15_df.to_csv('covid-19-child_training_tl_times_0_15.csv', index=False)
+    print(times_0_15_df.head())
 
