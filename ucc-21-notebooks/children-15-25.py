@@ -60,7 +60,7 @@ child_sample_perc_map = {}
 for i, row in df_clusters.iterrows():
     is_parent = row['is_parent']
     sample_percent = row['sample_percent']
-    if not is_parent and sample_percent <= 0.15:
+    if not is_parent and 0.15 < sample_percent <= 0.25:
         gis_join = row['GISJOIN']
 
         child_sample_perc_map[gis_join] = sample_percent
@@ -110,8 +110,8 @@ def predict_transfer_task(df_train, gis_join, parent_trained):
 #     children_dfs_map[gis_join] = get_df_by_gis_join(gis_join, sample_percent)
 
 # pickle.dump(child_sample_perc_map, open('pickles/child_sample_perc_map.pkl', 'wb'))
-# pickle.dump(children_dfs_map, open('pickles/children_dfs_map.pkl', 'wb'))
-children_dfs_map = pickle.load(open('pickles/children_dfs_map.pkl', 'rb'))
+# pickle.dump(children_dfs_map, open('pickles/children_dfs_map_15_20.pkl', 'wb'))
+children_dfs_map = pickle.load(open('pickles/children_dfs_map_15_20.pkl', 'rb'))
 
 print(len(children_list))
 print(len(children_dfs_map.keys()))
@@ -125,7 +125,7 @@ lazy_results = []
 for parent, children in parent_child_map.items():
     broken = False
     try:
-        parent_trained_  = trained_parents_map[parent]
+        parent_trained_ = trained_parents_map[parent]
         print(parent_trained_)
         for child in children:
             # check if the child falls under < 0.15 sampling percentage
@@ -152,7 +152,7 @@ print(f'results.length: {len(results)}')
 print(results)
 
 time2 = time.monotonic()
-print(f'Time taken (dataset=COVID-19, childModels 0-15%: {time2 - time1} s')
+print(f'Time taken (dataset=COVID-19, childModels 15-25%: {time2 - time1} s')
 
 # Write to CSV
 if not SINGLE_MODEL:
